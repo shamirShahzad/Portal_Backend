@@ -63,7 +63,6 @@ const applicationController = {
     next: NextFunction
   ) => {
     const client = await pool.connect();
-    console.log("HERE");
     try {
       await client.query("BEGIN");
       const body = req.body;
