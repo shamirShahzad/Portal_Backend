@@ -10,4 +10,10 @@ if (!fs.existsSync(uploadDir)) {
 
 const storage = multer.memoryStorage();
 
-export const upload = multer({ storage });
+export const upload = multer({
+  storage,
+  limits: {
+    files: 5,
+    fieldSize: 5 * 1024 * 1024,
+  },
+});
