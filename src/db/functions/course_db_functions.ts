@@ -13,7 +13,11 @@ export const getAllCourses = async (client: any) => {
   try {
     const result = await client.query(queryStr);
     if (result.rows.length === 0) {
-      return { success: false, errorMessage: "No courses found" };
+      return {
+        success: false,
+        errorMessage: "No courses found",
+        error: NOT_FOUND_ERROR("Courses not found"),
+      };
     }
     return { success: true, data: result.rows };
   } catch (err) {
@@ -69,13 +73,17 @@ export const createCourse = async (newCourse: Course, client: any) => {
     ];
     const result = await client.query(qStr, values);
     if (result.rows.length === 0) {
-      return { success: false, errorMessage: "Failed to create course" };
+      return {
+        success: false,
+        errorMessage: "Failed to create course",
+        error: BAD_REQUEST_ERROR("Failed to create course"),
+      };
     }
     if (result.rowCount == 0) {
       return {
         success: false,
         errorMessage: "Bad request",
-        error: BAD_REQUEST_ERROR,
+        error: BAD_REQUEST_ERROR("Bad course request"),
       };
     }
     return { success: true, data: result.rows[0] };
@@ -96,7 +104,7 @@ export const getCourseById = async (client: PoolClient, id: string) => {
       return {
         success: false,
         errorMessage: "Course not found",
-        error: NOT_FOUND_ERROR,
+        error: NOT_FOUND_ERROR("Course not found"),
       };
     }
     return {
@@ -167,7 +175,7 @@ export const updateCourse = async (
     if (result.rows.length === 0) {
       return {
         success: false,
-        error: NOT_FOUND_ERROR,
+        error: NOT_FOUND_ERROR("Course not found"),
         errorMessage: "Course not found",
       };
     }
@@ -191,7 +199,7 @@ export const deleteCourse = async (client: PoolClient, id: string) => {
     if (result.rowCount === 0) {
       return {
         success: false,
-        error: NOT_FOUND_ERROR,
+        error: NOT_FOUND_ERROR("Course not found"),
         errorMessage: "Course not Found",
       };
     }
@@ -202,7 +210,7 @@ export const deleteCourse = async (client: PoolClient, id: string) => {
   } catch (err: any) {
     return {
       success: false,
-      error: BAD_REQUEST_ERROR,
+      error: BAD_REQUEST_ERROR("Bad course request"),
       errorMessage: "Something went wrong while deleting course.",
     };
   }

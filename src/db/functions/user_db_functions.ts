@@ -1,7 +1,8 @@
 import { UserProfileSchema } from "../../models/user_profiles";
 import { UserSchema } from "../../models/users";
 import { z } from "zod";
-import pool from "../config";
+import { PoolClient } from "pg";
+import { BAD_REQUEST_ERROR, NOT_FOUND_ERROR } from "../../util/Errors";
 
 export const regsiterUser = async (
   client: any,
@@ -27,6 +28,7 @@ export const regsiterUser = async (
       return {
         success: false,
         errorMessage: "Failed to register user",
+        error: BAD_REQUEST_ERROR("Failed to create user"),
       };
     }
     return {
@@ -85,6 +87,7 @@ export const createUserProfile = async (
       return {
         success: false,
         errorMessage: "Failed to create user profile",
+        error: BAD_REQUEST_ERROR("Failed to create user"),
       };
     }
     return {
@@ -116,6 +119,7 @@ export const setUserConfirmationSentAt = async (
       return {
         success: false,
         errorMessage: "Failed to update confirmation_sent_at",
+        error: BAD_REQUEST_ERROR("Bad update request"),
       };
     }
   } catch (error) {
@@ -141,6 +145,7 @@ export const setConfirmedAt = async (client: any, email: string) => {
       return {
         success: false,
         errorMessage: "Failed to update confirmed_at",
+        error: BAD_REQUEST_ERROR("Bad updation request"),
       };
     }
     return { success: true, data: result.rows[0] };
@@ -163,6 +168,7 @@ export const getUserByEmail = async (client: any, email: string) => {
       return {
         success: false,
         errorMessage: "User not found",
+        error: NOT_FOUND_ERROR("User not found"),
       };
     }
     return {
@@ -178,8 +184,7 @@ export const getUserByEmail = async (client: any, email: string) => {
   }
 };
 
-export const getUserById = async (userId: string) => {
-  const client = await pool.connect();
+export const getUserById = async (client: PoolClient, userId: string) => {
   const queryStr = `
         SELECT 
             u.id,
@@ -198,6 +203,7 @@ export const getUserById = async (userId: string) => {
       return {
         success: false,
         errorMessage: "User not found",
+        error: NOT_FOUND_ERROR("User not found"),
       };
     }
     return {
@@ -211,7 +217,5 @@ export const getUserById = async (userId: string) => {
       error: error,
       data: {},
     };
-  } finally {
-    client.release(true);
   }
 };

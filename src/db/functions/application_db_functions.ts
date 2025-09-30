@@ -1,18 +1,23 @@
-import { PoolClient } from "pg";
+import { Pool, PoolClient } from "pg";
 import { BAD_REQUEST_ERROR, NOT_FOUND_ERROR } from "../../util/Errors";
 import { FiltersType } from "../../controller/ApplicationController";
-import { Application } from "../../models/applications";
+import { Application, ApplicationUpdate } from "../../models/applications";
 import { getUserById } from "./user_db_functions";
 import { getCourseById } from "./course_db_functions";
 import { success } from "zod";
+import { error } from "console";
 
-export const gettAllApplications = async (
+export const getAllApplications = async (
   client: PoolClient,
   filters: FiltersType
 ) => {
   const conditions = [];
   const values = [];
   let i = 1;
+  if (filters.id) {
+    conditions.push(`id = $${i++}`);
+    values.push(filters.id);
+  }
   if (filters.applicant_id) {
     conditions.push(`applicatnt_id = $${i++}`);
     values.push(filters.applicant_id);
@@ -89,7 +94,7 @@ export const createApplication = async (
     created_at,
   } = applicationTup;
   try {
-    const applicantTup = await getUserById(applicant_id);
+    const applicantTup = await getUserById(client, applicant_id);
     if (!applicantTup.success) {
       return applicantTup;
     }
@@ -131,7 +136,7 @@ export const createApplication = async (
       return {
         success: false,
         errorMessage: "Something went wrong while creating application.",
-        error: BAD_REQUEST_ERROR,
+        error: BAD_REQUEST_ERROR("Bad application creation request."),
       };
     }
     return {
@@ -143,6 +148,97 @@ export const createApplication = async (
       success: false,
       errorMessage: "Something went wrong while creating an application.",
       error: err,
+    };
+  }
+};
+
+export const updateApplication = async (
+  client: PoolClient,
+  applicationTup: ApplicationUpdate
+) => {
+  const {
+    id,
+    applicant_id,
+    course_id,
+    status,
+    priority,
+    submitted_at,
+    reviewed_at,
+    reviewed_by,
+    notes,
+  } = applicationTup;
+
+  try {
+    // Update the application
+    const qStr = `
+      UPDATE applications SET
+        applicant_id = $1,
+        course_id = $2,
+        status = $3,
+        priority = $4,
+        submitted_at = $5,
+        reviewed_at = $6,
+        reviewed_by = $7,
+        notes = $8,
+        updated_at = NOW()
+      WHERE id = $9
+      RETURNING *`;
+
+    const values = [
+      applicant_id,
+      course_id,
+      status,
+      priority,
+      submitted_at,
+      reviewed_at,
+      reviewed_by,
+      notes,
+      id,
+    ];
+
+    const applicationUpdateTup = await client.query(qStr, values);
+
+    if (applicationUpdateTup.rowCount === 0) {
+      return {
+        success: false,
+        errorMessage: "Something went wrong while updating application.",
+        error: BAD_REQUEST_ERROR("Bad application updation request"),
+      };
+    }
+
+    return {
+      success: true,
+      data: applicationUpdateTup.rows[0],
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      errorMessage: "Something went wrong while updating an application.",
+      error: err,
+    };
+  }
+};
+
+export const deleteApplication = async (client: PoolClient, id: string) => {
+  const qStr = `DELETE FROM applications WHERE id=$1`;
+  try {
+    const result = await client.query(qStr, [id]);
+    if (result.rowCount === 0) {
+      return {
+        success: false,
+        errorMessage: "Application not found",
+        error: NOT_FOUND_ERROR("Application not found"),
+      };
+    }
+    return {
+      success: true,
+      message: "Application deleted successfully",
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err,
+      errorMessage: "Something went wrong while deleting this application",
     };
   }
 };

@@ -15,4 +15,24 @@ export const ApplicationSchema = z.object({
   updated_at: z.date().optional(),
 });
 
+export const ApplicationUpdateSchema = z.object({
+  id: z.uuid().optional(),
+  applicant_id: z.uuid().optional(),
+  course_id: z.uuid().optional(),
+  status: z
+    .enum(Object.values(application_status) as [string, ...string[]])
+    .optional(),
+  priority: z
+    .enum(Object.values(priority_level) as [string, ...string[]])
+    .optional(),
+  submitted_at: z.date().optional(),
+  reviewed_at: z.date().nullable().optional(),
+  reviewed_by: z.uuid().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  created_at: z.date().optional(),
+  updated_at: z.date().optional(),
+});
+
 export type Application = z.infer<typeof ApplicationSchema>;
+
+export type ApplicationUpdate = z.infer<typeof ApplicationUpdateSchema>;
