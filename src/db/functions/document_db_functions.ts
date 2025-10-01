@@ -1,30 +1,67 @@
 import { PoolClient } from "pg";
-import { Document } from "../../models/documents";
+import { Document, DocumentUpdate } from "../../models/documents";
 import { BAD_REQUEST_ERROR } from "../../util/Errors";
 import { STATUS_CODES } from "../../util/enums";
 import { success } from "zod";
 const { BAD_REQUEST, NOT_FOUND, SUCCESS, CREATED, SERVER_ERROR } = STATUS_CODES;
 export const getDocumentsByApplicationId = async (
   client: PoolClient,
-  id: string
+  application_id: string
 ) => {
-  return {
-    success: false,
-    data: {},
-    error: null,
-    errorMessage: "",
-    statusCode: "",
-  };
+  const qStr = `SELECT * FROM documents WHERE application_id = $1`;
+  try {
+    const result = await client.query(qStr, [application_id]);
+    if (result.rows.length === 0) {
+      return {
+        success: false,
+        statusCode: NOT_FOUND,
+        error: BAD_REQUEST_ERROR("No documents found for this application"),
+        errorMessage: "No documents found for this application",
+      };
+    }
+    return {
+      success: true,
+      data: result.rows,
+      statusCode: SUCCESS,
+      message: "Documents fetched successfully",
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error,
+      errorMessage: "Something went wrong while fetching documents",
+      statusCode: SERVER_ERROR,
+    };
+  }
 };
 
 export const getDocumentById = async (client: PoolClient, id: string) => {
-  return {
-    success: false,
-    data: {},
-    error: null,
-    errorMessage: "",
-    statusCode: "",
-  };
+  const qStr = `SELECT * FROM documents WHERE id = $1`;
+  try {
+    const values = [id];
+    const result = await client.query(qStr, values);
+    if (result.rows.length === 0) {
+      return {
+        success: false,
+        statusCode: NOT_FOUND,
+        error: BAD_REQUEST_ERROR("Document not found"),
+        errorMessage: "Document not found",
+      };
+    }
+    return {
+      success: true,
+      data: result.rows[0],
+      statusCode: SUCCESS,
+      message: "Document fetched successfully",
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error,
+      errorMessage: "Something went wrong while fetching document",
+      statusCode: SERVER_ERROR,
+    };
+  }
 };
 
 export const createDocument = async (
@@ -90,6 +127,86 @@ export const createDocument = async (
       success: false,
       error,
       errorMessage: "Something went worng while creatig documents",
+      statusCode: SERVER_ERROR,
+    };
+  }
+};
+
+export const updateDocument = async (
+  client: PoolClient,
+  updateTup: DocumentUpdate
+) => {
+  const qStr = `
+UPDATE documents SET
+file_name = COALESCE($1, file_name),
+file_path = COALESCE($2, file_path),
+is_required = COALESCE($3, is_required)
+WHERE id = $4
+RETURNING *;
+`;
+  try {
+    const values = [
+      updateTup.file_name,
+      updateTup.file_path,
+      updateTup.is_required,
+      updateTup.id,
+    ];
+    const result = await client.query(qStr, values);
+    if (result.rows.length === 0) {
+      return {
+        success: false,
+        statusCode: NOT_FOUND,
+        error: BAD_REQUEST_ERROR("Document not found"),
+        errorMessage: "Document not found",
+      };
+    }
+    if (result.rowCount === 0) {
+      return {
+        success: false,
+        statusCode: BAD_REQUEST,
+        error: BAD_REQUEST_ERROR("Failed to update document"),
+        errorMessage: "Failed to update document",
+      };
+    }
+    return {
+      success: true,
+      data: result.rows[0],
+      statusCode: SUCCESS,
+      message: "Document updated successfully",
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error,
+      errorMessage: "Something went wrong while updating document",
+      statusCode: SERVER_ERROR,
+    };
+  }
+};
+
+export const deleteDocument = async (client: PoolClient, id: string) => {
+  const qStr = `DELETE FROM documents WHERE id=$1 RETURNING *`;
+  try {
+    const result = await client.query(qStr, [id]);
+    if (result.rows.length === 0) {
+      return {
+        success: false,
+        statusCode: NOT_FOUND,
+        error: BAD_REQUEST_ERROR("Document not found"),
+        errorMessage: "Document not found",
+      };
+    }
+    return {
+      success: true,
+      data: result.rows[0],
+      statusCode: SUCCESS,
+      message: "Document deleted successfully",
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error,
+      errorMessage: "Something went wrong while deleting document",
       statusCode: SERVER_ERROR,
     };
   }

@@ -14,14 +14,10 @@ export const DocumentSchema = z.object({
 
 export const DocumentUpdateSchema = z.object({
   id: z.uuid().optional(),
-  application_id: z.uuid().optional(),
   file_name: z.string().optional(),
   file_path: z.string().optional(),
-  file_size: z.bigint().optional(),
-  file_type: z.string().optional(),
   uploaded_by: z.uuid().optional(),
   is_required: z.boolean().optional(),
-  created_at: z.date().optional(),
 });
 
 export type Document = z.infer<typeof DocumentSchema>;
