@@ -3,6 +3,7 @@ import { UserSchema } from "../../models/users";
 import { z } from "zod";
 import { PoolClient } from "pg";
 import { BAD_REQUEST_ERROR, NOT_FOUND_ERROR } from "../../util/Errors";
+import pool from "../config";
 
 export const regsiterUser = async (
   client: any,
@@ -185,6 +186,43 @@ export const getUserByEmail = async (client: any, email: string) => {
 };
 
 export const getUserById = async (client: PoolClient, userId: string) => {
+  const queryStr = `
+        SELECT 
+            u.id,
+            u.email,
+            up.full_name,
+            up.employee_id,
+            up.phone_number,
+            up.role
+        FROM users u
+        LEFT JOIN user_profiles up ON u.id = up.id
+        WHERE u.id = $1
+    `;
+  try {
+    const result = await client.query(queryStr, [userId]);
+    if (result.rows.length === 0) {
+      return {
+        success: false,
+        errorMessage: "User not found",
+        error: NOT_FOUND_ERROR("User not found"),
+      };
+    }
+    return {
+      success: true,
+      data: result.rows[0],
+    };
+  } catch (error) {
+    return {
+      success: false,
+      errorMessage: "Something went wrong while fetching user by id",
+      error: error,
+      data: {},
+    };
+  }
+};
+
+export const getUserByIdNoClient = async (userId: string) => {
+  const client = await pool.connect();
   const queryStr = `
         SELECT 
             u.id,

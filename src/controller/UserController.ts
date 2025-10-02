@@ -253,6 +253,18 @@ const userController = {
       message: "Logged out successfully",
     });
   },
+  getMe: async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
+    return res.status(SUCCESS).json({
+      success: true,
+      statusCode: SUCCESS,
+      message: "User profile fetched successfully",
+      data: req.user,
+    });
+  },
 };
 
 export default userController;

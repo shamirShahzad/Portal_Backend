@@ -2,7 +2,10 @@ import type { NextFunction, Response, Request } from "express";
 import { STATUS_CODES } from "../util/enums";
 const { UNAUTHORIZED } = STATUS_CODES;
 import jwt from "jsonwebtoken";
-import { getUserById } from "../db/functions/user_db_functions";
+import {
+  getUserById,
+  getUserByIdNoClient,
+} from "../db/functions/user_db_functions";
 import type { AuthenticatedRequest } from "../types/AuthenticatedRequest";
 
 export const isAuthenticated = async (
@@ -18,7 +21,7 @@ export const isAuthenticated = async (
     id: string;
   };
 
-  const user = await getUserById(decoded.id);
+  const user = await getUserByIdNoClient(decoded.id);
   if (!user.success) {
     res.status(UNAUTHORIZED);
     return next(new Error("Unauthorized: Invalid token"));
