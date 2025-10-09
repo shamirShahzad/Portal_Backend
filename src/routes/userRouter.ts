@@ -9,5 +9,6 @@ userRouter.post("/login", userController.login);
 userRouter.post("/auth", isAuthenticated, userController.authCheck);
 userRouter.post("/logout", isAuthenticated, userController.logout);
 userRouter.get("/me", isAuthenticated, userController.getMe);
+userRouter.post("/contact", userController.contactUs);
 
 export default userRouter;

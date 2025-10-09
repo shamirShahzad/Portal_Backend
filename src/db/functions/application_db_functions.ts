@@ -107,7 +107,6 @@ export const createApplication = async (
         course_id,
         status,
         priority,
-        submitted_at,
         reviewed_at,
         reviewed_by,
         notes
@@ -118,8 +117,8 @@ export const createApplication = async (
             $4,
             $5,
             $6,
-            $7,
-            $8)
+            $7
+            )
         RETURNING *`;
     const values = [
       applicant_id,
@@ -239,6 +238,53 @@ export const deleteApplication = async (client: PoolClient, id: string) => {
       success: false,
       error: err,
       errorMessage: "Something went wrong while deleting this application",
+    };
+  }
+};
+
+export const getDetailedApplications = async (client: PoolClient) => {
+  const qStr = `
+  SELECT 
+    a.*,
+    up.full_name AS applicant_name,
+    up.employee_id,
+    up.department,
+    up.sub_organization,
+    up.job_title,
+    up.experience_years,
+    up.manager_name,
+    up.manager_email,
+    u.email as applicant_email,
+    c.title AS course_title,
+    c.category AS course_category,
+    c.duration AS course_duration,
+    c.format AS course_format,
+    c.level AS course_level
+    FROM applications a
+    JOIN users u ON a.applicant_id = u.id
+    JOIN courses c ON a.course_id = c.id
+    JOIN user_profiles up ON a.applicant_id = up.id
+    ORDER BY a.created_at DESC
+    LIMIT 20
+  `;
+  try {
+    const applicationsTup = await client.query(qStr);
+    if (applicationsTup.rows.length <= 0 || applicationsTup.rowCount == 0) {
+      return {
+        success: false,
+        errorMessage: "Application not found",
+        error: NOT_FOUND_ERROR,
+      };
+    }
+    return {
+      success: true,
+      data: applicationsTup.rows,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      errorMessage: "Something went wrong while getting applications.",
+      error,
     };
   }
 };

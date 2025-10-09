@@ -5,8 +5,12 @@ export const ApplicationSchema = z.object({
   id: z.uuid().optional(),
   applicant_id: z.uuid(),
   course_id: z.uuid(),
-  status: z.enum(Object.values(application_status) as [string, ...string[]]),
-  priority: z.enum(Object.values(priority_level) as [string, ...string[]]),
+  status: z
+    .enum(Object.values(application_status) as [string, ...string[]])
+    .optional(),
+  priority: z
+    .enum(Object.values(priority_level) as [string, ...string[]])
+    .optional(),
   submitted_at: z.date().optional(),
   reviewed_at: z.date().nullable().optional(),
   reviewed_by: z.uuid().nullable().optional(),

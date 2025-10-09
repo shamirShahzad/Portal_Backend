@@ -4,6 +4,7 @@ import { z } from "zod";
 import { UserProfileSchema, type UserProfile } from "../models/user_profiles";
 import bcrypt from "bcrypt";
 import {
+  contactFormEntry,
   createUserProfile,
   getUserByEmail,
   regsiterUser,
@@ -20,6 +21,7 @@ import path from "path";
 const { BAD_REQUEST, SERVER_ERROR, CREATED, SUCCESS, UNAUTHORIZED, FORBIDDEN } =
   STATUS_CODES;
 import fs from "fs";
+import { ContactFormSchema } from "../models/contact_form";
 
 const userRegistrationSchema = z.object({
   user: z.object({
@@ -264,6 +266,44 @@ const userController = {
       message: "User profile fetched successfully",
       data: req.user,
     });
+  },
+  contactUs: async (req: Request, res: Response, next: NextFunction) => {
+    const client = await pool.connect();
+    await client.query("BEGIN");
+    try {
+      const contactFormData = ContactFormSchema.parse(req.body);
+      if (
+        !contactFormData.name ||
+        !contactFormData.email ||
+        !contactFormData.inquiry_type ||
+        !contactFormData.subject ||
+        !contactFormData.message
+      ) {
+        return res.status(BAD_REQUEST).json({
+          success: false,
+          message: "Missing required fields",
+        });
+      }
+      const result = await contactFormEntry(client, req.body);
+      if (!result.success) {
+        await client.query("ROLLBACK");
+        res.status(BAD_REQUEST);
+        return next(result.error);
+      }
+      await client.query("COMMIT");
+      return res.status(CREATED).json({
+        success: true,
+        statusCode: CREATED,
+        message: "Contact form submitted successfully",
+        data: result.data,
+      });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      res.status(SERVER_ERROR);
+      return next(err);
+    } finally {
+      client.release(true);
+    }
   },
 };
 

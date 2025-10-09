@@ -4,6 +4,7 @@ import { z } from "zod";
 import { PoolClient } from "pg";
 import { BAD_REQUEST_ERROR, NOT_FOUND_ERROR } from "../../util/Errors";
 import pool from "../config";
+import { ContactForm } from "../../models/contact_form";
 
 export const regsiterUser = async (
   client: any,
@@ -254,6 +255,52 @@ export const getUserByIdNoClient = async (userId: string) => {
       errorMessage: "Something went wrong while fetching user by id",
       error: error,
       data: {},
+    };
+  }
+};
+
+export const contactFormEntry = async (
+  client: PoolClient,
+  formData: ContactForm
+) => {
+  const qStr = `
+  INSERT INTO contact_form (
+    name,
+    email,
+    phone,
+    inquiry_type,
+    subject,
+    message
+  ) VALUES ($1, $2, $3, $4, $5, $6)
+  RETURNING *
+  `;
+  const values = [
+    formData.name,
+    formData.email,
+    formData.phone,
+    formData.inquiry_type,
+    formData.subject,
+    formData.message,
+  ];
+  try {
+    const result = await client.query(qStr, values);
+    if (result.rows.length === 0) {
+      return {
+        success: false,
+        errorMessage: "Failed to submit contact form",
+        error: BAD_REQUEST_ERROR("Failed to submit contact form"),
+      };
+    }
+    return {
+      success: true,
+      message: "Contact form submitted successfully",
+      data: result.rows[0],
+    };
+  } catch (error) {
+    return {
+      success: false,
+      errorMessage: "Something went wrong while submitting contact form",
+      error: error,
     };
   }
 };

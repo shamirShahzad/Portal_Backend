@@ -7,6 +7,7 @@ import {
   createApplication,
   deleteApplication,
   getAllApplications,
+  getDetailedApplications,
   updateApplication,
 } from "../db/functions/application_db_functions";
 import {
@@ -76,7 +77,9 @@ const applicationController = {
     try {
       await client.query("BEGIN");
       const body = req.body;
-      body.submitted_at = new Date(body.submitted_at);
+      if (body.reviewed_at) {
+        body.reviewed_at = new Date(body.reviewed_at);
+      }
       const bodyTup = ApplicationSchema.parse(body);
       const createApplicationTup = await createApplication(client, bodyTup);
       if (!createApplicationTup.success) {
@@ -93,6 +96,7 @@ const applicationController = {
       });
     } catch (err: any) {
       await client.query("ROLLBACK");
+      res.status(BAD_REQUEST);
       return next(err);
     } finally {
       client.release(true);
@@ -195,6 +199,39 @@ const applicationController = {
       await client.query("ROLLBACK");
       res.status(NOT_FOUND);
       return next(NOT_FOUND_ERROR);
+    }
+  },
+  getDetailedApplications: async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
+    const client = await pool.connect();
+    await client.query("BEGIN");
+    try {
+      const result = await getDetailedApplications(client);
+      if (!result.success) {
+        await client.query("ROLLBACK");
+        res.status(
+          result.errorMessage === "Application not found"
+            ? NOT_FOUND
+            : BAD_REQUEST
+        );
+
+        return next(result.error);
+      }
+      await client.query("COMMIT");
+      return res.status(SUCCESS).json({
+        success: true,
+        statusCode: SUCCESS,
+        message: "Detailed applications fetched successfully",
+        data: result.data,
+      });
+    } catch (err: any) {
+      await client.query("ROLLBACK");
+      return next(err);
+    } finally {
+      client.release(true);
     }
   },
 };
