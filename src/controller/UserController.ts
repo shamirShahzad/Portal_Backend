@@ -1,4 +1,9 @@
-import type { NextFunction, Request, Response } from "express";
+import {
+  application,
+  type NextFunction,
+  type Request,
+  type Response,
+} from "express";
 import { type User, UserSchema } from "../models/users";
 import { z } from "zod";
 import { UserProfileSchema, type UserProfile } from "../models/user_profiles";
@@ -22,24 +27,37 @@ const { BAD_REQUEST, SERVER_ERROR, CREATED, SUCCESS, UNAUTHORIZED, FORBIDDEN } =
   STATUS_CODES;
 import fs from "fs";
 import { ContactFormSchema } from "../models/contact_form";
+import { ApplicationSchema } from "../models/applications";
+import { createApplication } from "../db/functions/application_db_functions";
 
 const userRegistrationSchema = z.object({
-  user: z.object({
-    email: z.email(),
-    password: z.string().min(8),
-    confirmation_token: z.string().optional().nullable(),
+  userRegistration: z.object({
+    user: z.object({
+      email: z.email(),
+      password: z.string().min(8),
+      confirmation_token: z.string().optional().nullable(),
+    }),
+    full_name: z.string(),
+    employee_id: z.string(),
+    department: z.string(),
+    phone_number: z.string(),
+    sub_organization: z.string(),
+    job_title: z.string(),
+    experience_years: z.number().int(),
+    manager_name: z.string(),
+    manager_email: z.string(),
+    role: z.enum(Object.values(user_role) as [string, ...string[]]),
+    avatar_url: z.string().nullable().optional(),
   }),
-  full_name: z.string(),
-  employee_id: z.string(),
-  department: z.string(),
-  phone_number: z.string(),
-  sub_organization: z.string(),
-  job_title: z.string(),
-  experience_years: z.number().int(),
-  manager_name: z.string(),
-  manager_email: z.string(),
-  role: z.enum(Object.values(user_role) as [string, ...string[]]),
-  avatar_url: z.string().nullable().optional(),
+  application: z.object({
+    applicant_id: z.string().optional(),
+    course_id: z.string(),
+    status: z.string(),
+    priority: z.string(),
+    reviewed_by: z.string().nullable().optional(),
+    reviewed_at: z.string().nullable().optional(),
+    notes: z.string(),
+  }),
 });
 
 const getConfirmationEmailHtml = (email: string, token: string) => {
@@ -71,7 +89,10 @@ const userController = {
       //Get Data from request body and validate
       const parsedData = userRegistrationSchema.parse(req.body);
       //Separate data into user and user profile data
-      const { user, ...profileData } = parsedData;
+      const {
+        userRegistration: { user, ...profileData },
+        ...data
+      } = parsedData;
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(user.password, salt);
       user.password = hashedPassword;
@@ -99,6 +120,15 @@ const userController = {
         res.status(STATUS_CODES.BAD_REQUEST);
         return next(profileResult.error);
       }
+      const applicationData = data.application;
+      applicationData.applicant_id = result.data.id;
+      const applicationTup = ApplicationSchema.parse(applicationData);
+      const applicationResult = await createApplication(client, applicationTup);
+      if (!applicationResult.success) {
+        await client.query("ROLLBACK");
+        res.status(STATUS_CODES.BAD_REQUEST);
+        return next(applicationResult.error);
+      }
       // Send confirmation email
       await sendMail({
         to: user.email,
@@ -121,6 +151,7 @@ const userController = {
           "User registered successfully. Please check your email to confirm your account.",
         data: {
           userId: result.data.id,
+          applicationId: applicationResult.data.id,
           confirmationToken: result.data.confirmation_token,
           userProfile: profileResult.data,
         },

@@ -91,7 +91,6 @@ export const createApplication = async (
     reviewed_at,
     reviewed_by,
     notes,
-    created_at,
   } = applicationTup;
   try {
     const applicantTup = await getUserById(client, applicant_id);
@@ -125,7 +124,6 @@ export const createApplication = async (
       course_id,
       status,
       priority,
-      submitted_at,
       reviewed_at,
       reviewed_by,
       notes,

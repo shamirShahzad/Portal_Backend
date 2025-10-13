@@ -31,7 +31,6 @@ const documentController = {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
-      console.log(1);
       if (id) {
         const documentTup = await getDocumentById(client, id.toString());
         if (!documentTup.success) {
@@ -47,12 +46,10 @@ const documentController = {
         });
       }
       const { application_id } = req.body;
-      console.log(2);
       const documentsTup = await getDocumentsByApplicationId(
         client,
         application_id.toString()
       );
-      console.log(2);
       if (!documentsTup.success) {
         await client.query("ROLLBACK");
         res.status(NOT_FOUND);
