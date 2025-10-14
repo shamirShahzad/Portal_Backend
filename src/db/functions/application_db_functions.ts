@@ -1,11 +1,15 @@
 import { Pool, PoolClient } from "pg";
-import { BAD_REQUEST_ERROR, NOT_FOUND_ERROR, CONFLICT_ERROR } from "../../util/Errors";
+import {
+  BAD_REQUEST_ERROR,
+  NOT_FOUND_ERROR,
+  CONFLICT_ERROR,
+} from "../../util/Errors";
 import { FiltersType } from "../../controller/ApplicationController";
 import { Application, ApplicationUpdate } from "../../models/applications";
 import { getUserById } from "./user_db_functions";
 import { getCourseById } from "./course_db_functions";
 import { getDocumentsByApplicationId } from "./document_db_functions";
-
+import { application_status } from "../../util/enums";
 
 export const getAllApplications = async (
   client: PoolClient,
@@ -102,22 +106,27 @@ export const createApplication = async (
     if (!courseTup.success) {
       return courseTup;
     }
-    
-    // Check if user has already applied for this course
+
+    // Check if user has already applied for this course and it's not rejected or cancelled
     const existingApplicationQuery = `
-      SELECT id FROM applications 
-      WHERE applicant_id = $1 AND course_id = $2
+      SELECT id, status FROM applications 
+      WHERE applicant_id = $1 AND course_id = $2 AND status NOT IN ($3, $4)
     `;
     const existingApplication = await client.query(existingApplicationQuery, [
       applicant_id,
       course_id,
+      application_status.REJECTED,
+      application_status.CANCELLED,
     ]);
-    
+
     if (existingApplication.rows.length > 0) {
+      const existingStatus = existingApplication.rows[0].status;
       return {
         success: false,
-        errorMessage: "You have already applied for this course.",
-        error: CONFLICT_ERROR("Duplicate application: User has already applied for this course"),
+        errorMessage: `You have already applied for this course. Current application status: ${existingStatus}. You can only reapply if your previous application was rejected or cancelled.`,
+        error: CONFLICT_ERROR(
+          "Duplicate application: User has already applied for this course and it's not rejected or cancelled"
+        ),
       };
     }
 
@@ -350,16 +359,19 @@ export const getDetailedApplications = async (
     const applicationsWithDocuments = await Promise.all(
       applicationsTup.rows.map(async (application) => {
         try {
-          const documentsResult = await getDocumentsByApplicationId(client, application.id);
+          const documentsResult = await getDocumentsByApplicationId(
+            client,
+            application.id
+          );
           return {
             ...application,
-            documents: documentsResult.success ? documentsResult.data : []
+            documents: documentsResult.success ? documentsResult.data : [],
           };
         } catch (error) {
           // If documents query fails, return application without documents
           return {
             ...application,
-            documents: []
+            documents: [],
           };
         }
       })
@@ -388,7 +400,8 @@ export const bulkUpdateApplications = async (
     reviewed_at: Date;
   }
 ) => {
-  const { application_ids, status, notes, reviewed_by, reviewed_at } = bulkUpdateData;
+  const { application_ids, status, notes, reviewed_by, reviewed_at } =
+    bulkUpdateData;
   const updated_applications = [];
   const failed_applications = [];
 
@@ -405,7 +418,7 @@ export const bulkUpdateApplications = async (
         if (checkResult.rows.length === 0) {
           failed_applications.push({
             id: app_id,
-            error: "Application not found"
+            error: "Application not found",
           });
           continue;
         }
@@ -417,31 +430,31 @@ export const bulkUpdateApplications = async (
           WHERE id = $5
           RETURNING id, status, updated_at
         `;
-        
+
         const updateResult = await client.query(updateQuery, [
           status,
           notes,
           reviewed_by,
           reviewed_at,
-          app_id
+          app_id,
         ]);
 
         if (updateResult.rowCount && updateResult.rowCount > 0) {
           updated_applications.push({
             id: app_id,
             status: status,
-            updated_at: updateResult.rows[0].updated_at
+            updated_at: updateResult.rows[0].updated_at,
           });
         } else {
           failed_applications.push({
             id: app_id,
-            error: "Failed to update application"
+            error: "Failed to update application",
           });
         }
       } catch (error: any) {
         failed_applications.push({
           id: app_id,
-          error: error.message || "Unknown error occurred"
+          error: error.message || "Unknown error occurred",
         });
       }
     }
@@ -452,14 +465,14 @@ export const bulkUpdateApplications = async (
         updated_count: updated_applications.length,
         failed_count: failed_applications.length,
         updated_applications,
-        failed_applications
-      }
+        failed_applications,
+      },
     };
   } catch (error: any) {
     return {
       success: false,
       error: error,
-      errorMessage: "Something went wrong during bulk update"
+      errorMessage: "Something went wrong during bulk update",
     };
   }
 };

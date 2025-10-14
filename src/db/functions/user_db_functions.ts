@@ -304,3 +304,92 @@ export const contactFormEntry = async (
     };
   }
 };
+
+export const registerAdmin = async (
+  client: PoolClient,
+  userData: {
+    email: string;
+    password: string;
+    full_name: string;
+    employee_id: string;
+    department: string;
+    phone_number?: string;
+    sub_organization: string;
+    job_title: string;
+    experience_years: number;
+    manager_name: string;
+    manager_email: string;
+    role: "admin" | "super_admin";
+    avatar_url?: string;
+  }
+) => {
+  try {
+    // Insert user
+    const userInsertQuery = `
+      INSERT INTO users (email, password, confirmed_at)
+      VALUES ($1, $2, NOW())
+      RETURNING id
+    `;
+    const userResult = await client.query(userInsertQuery, [
+      userData.email,
+      userData.password,
+    ]);
+
+    if (userResult.rows.length === 0) {
+      return {
+        success: false,
+        errorMessage: "Failed to create user",
+        error: BAD_REQUEST_ERROR("Failed to create user"),
+      };
+    }
+
+    const userId = userResult.rows[0].id;
+
+    // Insert user profile
+    const profileInsertQuery = `
+      INSERT INTO user_profiles (
+        id, full_name, employee_id, department, phone_number,
+        sub_organization, job_title, experience_years, manager_name,
+        manager_email, role, avatar_url
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      RETURNING *
+    `;
+    const profileResult = await client.query(profileInsertQuery, [
+      userId,
+      userData.full_name,
+      userData.employee_id,
+      userData.department,
+      userData.phone_number,
+      userData.sub_organization,
+      userData.job_title,
+      userData.experience_years,
+      userData.manager_name,
+      userData.manager_email,
+      userData.role,
+      userData.avatar_url,
+    ]);
+
+    if (profileResult.rows.length === 0) {
+      return {
+        success: false,
+        errorMessage: "Failed to create user profile",
+        error: BAD_REQUEST_ERROR("Failed to create user profile"),
+      };
+    }
+
+    return {
+      success: true,
+      data: {
+        user: userResult.rows[0],
+        profile: profileResult.rows[0],
+      },
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      errorMessage: "Something went wrong while registering admin",
+      error: error,
+    };
+  }
+};

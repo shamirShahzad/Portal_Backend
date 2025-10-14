@@ -15,6 +15,7 @@ import {
   regsiterUser,
   setConfirmedAt,
   setUserConfirmationSentAt,
+  registerAdmin,
 } from "../db/functions/user_db_functions";
 
 import { STATUS_CODES, user_role } from "../util/enums";
@@ -60,6 +61,29 @@ const userRegistrationSchema = z.object({
   }),
 });
 
+const adminRegistrationSchema = z.object({
+  email: z.email("Valid email is required"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  full_name: z.string().min(1, "Full name is required"),
+  employee_id: z.string().min(1, "Employee ID is required"),
+  department: z.string().min(1, "Department is required"),
+  phone_number: z.string().optional(),
+  sub_organization: z.string().min(1, "Sub organization is required"),
+  job_title: z.string().min(1, "Job title is required"),
+  experience_years: z
+    .number()
+    .int()
+    .min(0, "Experience years must be 0 or greater"),
+  manager_name: z.string().min(1, "Manager name is required"),
+  manager_email: z.email("Valid manager email is required"),
+  role: z
+    .enum(["admin", "super_admin"])
+    .refine((val) => val === "admin" || val === "super_admin", {
+      message: "Role must be either 'admin' or 'super_admin'",
+    }),
+  avatar_url: z.string().optional(),
+});
+
 const getConfirmationEmailHtml = (email: string, token: string) => {
   const confirmUrl = `${
     process.env.APP_BASE_URL || "http://localhost:3000"
@@ -90,7 +114,8 @@ const getConfirmationSuccessHtml = () => {
   );
   let html = fs.readFileSync(filePath, "utf-8");
   // Replace with your actual login URL
-  const loginUrl = process.env.FRONTEND_LOGIN_URL || "http://localhost:3000/login";
+  const loginUrl =
+    process.env.FRONTEND_LOGIN_URL || "http://localhost:3000/login";
   html = html.replace("{{LOGIN_URL}}", loginUrl);
   return html;
 };
@@ -106,7 +131,8 @@ const getConfirmationErrorHtml = (errorMessage: string) => {
   let html = fs.readFileSync(filePath, "utf-8");
   html = html.replace("{{ERROR_MESSAGE}}", errorMessage);
   // Replace with your actual contact URL
-  const contactUrl = process.env.FRONTEND_CONTACT_URL || "http://localhost:3000/contact";
+  const contactUrl =
+    process.env.FRONTEND_CONTACT_URL || "http://localhost:3000/contact";
   html = html.replace("{{CONTACT_URL}}", contactUrl);
   return html;
 };
@@ -198,14 +224,18 @@ const userController = {
   confirm: async (req: Request, res: Response, next: NextFunction) => {
     const { token, email } = req.query;
     if (!token || !email) {
-      const errorHtml = getConfirmationErrorHtml("Missing token or email in the confirmation link.");
+      const errorHtml = getConfirmationErrorHtml(
+        "Missing token or email in the confirmation link."
+      );
       return res.status(BAD_REQUEST).send(errorHtml);
     }
     const client = await pool.connect();
     try {
       const user = await getUserByEmail(client, email as string);
       if (!user.success) {
-        const errorHtml = getConfirmationErrorHtml("Invalid or expired confirmation token.");
+        const errorHtml = getConfirmationErrorHtml(
+          "Invalid or expired confirmation token."
+        );
         return res.status(BAD_REQUEST).send(errorHtml);
       }
       const sentAt = user?.data?.confirmation_sent_at;
@@ -213,20 +243,26 @@ const userController = {
         !sentAt ||
         Date.now() - new Date(sentAt).getTime() > 24 * 60 * 60 * 1000
       ) {
-        const errorHtml = getConfirmationErrorHtml("Confirmation token has expired. Please request a new one.");
+        const errorHtml = getConfirmationErrorHtml(
+          "Confirmation token has expired. Please request a new one."
+        );
         return res.status(BAD_REQUEST).send(errorHtml);
       }
       const result = await setConfirmedAt(client, email as string);
       if (!result.success) {
-        const errorHtml = getConfirmationErrorHtml("Invalid or expired confirmation token.");
+        const errorHtml = getConfirmationErrorHtml(
+          "Invalid or expired confirmation token."
+        );
         return res.status(BAD_REQUEST).send(errorHtml);
       }
-      
+
       // Success - serve the success HTML page
       const successHtml = getConfirmationSuccessHtml();
       return res.status(SUCCESS).send(successHtml);
     } catch (error) {
-      const errorHtml = getConfirmationErrorHtml("An unexpected error occurred. Please try again or contact support.");
+      const errorHtml = getConfirmationErrorHtml(
+        "An unexpected error occurred. Please try again or contact support."
+      );
       return res.status(500).send(errorHtml);
     } finally {
       client.release();
@@ -356,6 +392,60 @@ const userController = {
     } catch (err) {
       await client.query("ROLLBACK");
       res.status(SERVER_ERROR);
+      return next(err);
+    } finally {
+      client.release(true);
+    }
+  },
+
+  registerAdmin: async (req: Request, res: Response, next: NextFunction) => {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      // Validate request body
+      const adminData = adminRegistrationSchema.parse(req.body);
+
+      // Hash password
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(adminData.password, salt);
+
+      // Check if email already exists
+      const existingUser = await getUserByEmail(client, adminData.email);
+      if (existingUser.success) {
+        await client.query("ROLLBACK");
+        res.status(BAD_REQUEST);
+        return next(new Error("Email already exists"));
+      }
+
+      // Register admin user
+      const result = await registerAdmin(client, {
+        ...adminData,
+        password: hashedPassword,
+      });
+
+      if (!result.success || !result.data) {
+        await client.query("ROLLBACK");
+        res.status(BAD_REQUEST);
+        return next(result.error || new Error("Failed to register admin"));
+      }
+
+      await client.query("COMMIT");
+
+      // Return success response (don't include password in response)
+      const { password, ...responseData } = adminData;
+      return res.status(CREATED).json({
+        success: true,
+        statusCode: CREATED,
+        message: `${adminData.role} registered successfully`,
+        data: {
+          user: result.data.user,
+          profile: result.data.profile,
+        },
+      });
+    } catch (err: any) {
+      await client.query("ROLLBACK");
+      res.status(BAD_REQUEST);
       return next(err);
     } finally {
       client.release(true);

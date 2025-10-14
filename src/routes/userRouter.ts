@@ -4,6 +4,7 @@ import { isAuthenticated } from "../middlewares/isAuthenticated";
 const userRouter = express.Router();
 
 userRouter.post("/register", userController.register);
+userRouter.post("/register-admin", userController.registerAdmin);
 userRouter.get("/auth/confirm", userController.confirm);
 userRouter.post("/login", userController.login);
 userRouter.post("/auth", isAuthenticated, userController.authCheck);
