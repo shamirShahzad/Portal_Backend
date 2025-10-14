@@ -80,6 +80,37 @@ const getConfirmationEmailHtml = (email: string, token: string) => {
   return html;
 };
 
+const getConfirmationSuccessHtml = () => {
+  const filePath = path.join(
+    __dirname,
+    "..",
+    "util",
+    "email",
+    "ConfirmationSuccess.html"
+  );
+  let html = fs.readFileSync(filePath, "utf-8");
+  // Replace with your actual login URL
+  const loginUrl = process.env.FRONTEND_LOGIN_URL || "http://localhost:3000/login";
+  html = html.replace("{{LOGIN_URL}}", loginUrl);
+  return html;
+};
+
+const getConfirmationErrorHtml = (errorMessage: string) => {
+  const filePath = path.join(
+    __dirname,
+    "..",
+    "util",
+    "email",
+    "ConfirmationError.html"
+  );
+  let html = fs.readFileSync(filePath, "utf-8");
+  html = html.replace("{{ERROR_MESSAGE}}", errorMessage);
+  // Replace with your actual contact URL
+  const contactUrl = process.env.FRONTEND_CONTACT_URL || "http://localhost:3000/contact";
+  html = html.replace("{{CONTACT_URL}}", contactUrl);
+  return html;
+};
+
 const userController = {
   register: async (req: Request, res: Response, next: NextFunction) => {
     let newUserTup: User;
@@ -167,42 +198,36 @@ const userController = {
   confirm: async (req: Request, res: Response, next: NextFunction) => {
     const { token, email } = req.query;
     if (!token || !email) {
-      return res
-        .status(BAD_REQUEST)
-        .json({ success: false, message: "Missing token or email." });
+      const errorHtml = getConfirmationErrorHtml("Missing token or email in the confirmation link.");
+      return res.status(BAD_REQUEST).send(errorHtml);
     }
     const client = await pool.connect();
     try {
       const user = await getUserByEmail(client, email as string);
       if (!user.success) {
-        return res.status(BAD_REQUEST).json({
-          success: false,
-          message: "Invalid or expired confirmation token.",
-        });
+        const errorHtml = getConfirmationErrorHtml("Invalid or expired confirmation token.");
+        return res.status(BAD_REQUEST).send(errorHtml);
       }
       const sentAt = user?.data?.confirmation_sent_at;
       if (
         !sentAt ||
         Date.now() - new Date(sentAt).getTime() > 24 * 60 * 60 * 1000
       ) {
-        return res.status(BAD_REQUEST).json({
-          success: false,
-          message: "Confirmation token has expired. Please request a new one.",
-        });
+        const errorHtml = getConfirmationErrorHtml("Confirmation token has expired. Please request a new one.");
+        return res.status(BAD_REQUEST).send(errorHtml);
       }
       const result = await setConfirmedAt(client, email as string);
       if (!result.success) {
-        return res.status(BAD_REQUEST).json({
-          success: false,
-          message: "Invalid or expired confirmation token.",
-        });
+        const errorHtml = getConfirmationErrorHtml("Invalid or expired confirmation token.");
+        return res.status(BAD_REQUEST).send(errorHtml);
       }
-      return res.status(SUCCESS).json({
-        success: true,
-        message: "Email confirmed successfully. You can now log in.",
-      });
+      
+      // Success - serve the success HTML page
+      const successHtml = getConfirmationSuccessHtml();
+      return res.status(SUCCESS).send(successHtml);
     } catch (error) {
-      return next(error);
+      const errorHtml = getConfirmationErrorHtml("An unexpected error occurred. Please try again or contact support.");
+      return res.status(500).send(errorHtml);
     } finally {
       client.release();
     }

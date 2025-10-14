@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmation Error - NGN Training Center</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+            padding: 50px 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #dc2626, #991b1b);
+        }
+        
+        .icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            border-radius: 50%;
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: shake 0.8s ease-out;
+        }
+        
+        .icon svg {
+            width: 40px;
+            height: 40px;
+            stroke: white;
+            stroke-width: 3;
+        }
+        
+        h1 {
+            color: #1f2937;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            line-height: 1.2;
+        }
+        
+        .subtitle {
+            color: #6b7280;
+            font-size: 16px;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+        
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 30px 0;
+            color: #991b1b;
+        }
+        
+        .error-message h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: #dc2626;
+        }
+        
+        .error-message p {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 30px 0;
+        }
+        
+        .action-button {
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(220, 38, 38, 0.3);
+        }
+        
+        .action-button.secondary {
+            background: transparent;
+            color: #dc2626;
+            border: 2px solid #dc2626;
+        }
+        
+        .action-button.secondary:hover {
+            background: #dc2626;
+            color: white;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 25px;
+            border-top: 1px solid #e5e7eb;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .company-logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: #dc2626;
+            margin-bottom: 10px;
+        }
+        
+        @keyframes shake {
+            10%, 90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+            20%, 80% {
+                transform: translate3d(2px, 0, 0);
+            }
+            30%, 50%, 70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+            40%, 60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 40px 30px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .actions {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .action-button {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </div>
+        
+        <h1>Confirmation Failed</h1>
+        <p class="subtitle">We couldn't verify your email address. This could be due to an expired or invalid confirmation link.</p>
+        
+        <div class="error-message">
+            <h3>What went wrong?</h3>
+            <p>{{ERROR_MESSAGE}}</p>
+        </div>
+        
+        <div class="actions">
+            <a href="{{CONTACT_URL}}" class="action-button">Contact Support</a>
+        </div>
+        
+        <div class="footer">
+            <div class="company-logo">NGN Training Center</div>
+            <p>Need help? Contact us at <strong>support@ngntrainingcenter.com</strong></p>
+        </div>
+    </div>
+</body>
+</html>

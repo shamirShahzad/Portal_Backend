@@ -27,20 +27,29 @@ const courseController = {
   getCourse: async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.query;
     const client = await pool.connect();
-    if (id) {
-      const courseTup = await getCourseById(client, id.toString());
-      if (!courseTup.success) {
-        res.status(BAD_REQUEST);
-        return next(courseTup.error);
-      }
-    }
+    
     try {
+      if (id) {
+        // Get single course by ID
+        const courseTup = await getCourseById(client, id.toString());
+        if (!courseTup.success) {
+          res.status(NOT_FOUND);
+          return next(courseTup.error);
+        }
+        return res.status(SUCCESS).json({
+          success: true,
+          data: courseTup.data,
+          message: "Course fetched successfully",
+        });
+      }
+      
+      // Get all courses if no ID provided
       const courses = await getAllCourses(client);
       if (!courses.success) {
-        res.status(404);
+        res.status(NOT_FOUND);
         return next(courses.error);
       }
-      res.status(200).json({
+      res.status(SUCCESS).json({
         success: true,
         data: courses.data,
         message: "Courses fetched successfully",

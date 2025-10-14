@@ -10,6 +10,7 @@ applicationRouter.get(
   applicationController.getDetailedApplications
 );
 applicationRouter.post("/", applicationController.createApplication);
+applicationRouter.put("/bulk-update", applicationController.bulkUpdateApplications);
 applicationRouter.put("/:id", applicationController.updateApplication);
 applicationRouter.delete("/:id", applicationController.deleteApplication);
 

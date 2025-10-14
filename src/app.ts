@@ -8,6 +8,7 @@ import courseRouter from "./routes/courseRouter";
 import path from "path";
 import applicationRouter from "./routes/applicationRouter";
 import documentRouter from "./routes/documentRouter";
+import managerApprovalRouter from "./routes/managerApprovalRouter";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -25,6 +26,7 @@ app.use("/api/v1/users", userRouter);
 app.use("/api/v1/courses", courseRouter);
 app.use("/api/v1/applications", applicationRouter);
 app.use("/api/v1/documents", documentRouter);
+app.use("/api/v1/manager-approval", managerApprovalRouter);
 app.use(errorMiddleware);
 
 app.get("/", (req, res) => res.send("Hello World!"));

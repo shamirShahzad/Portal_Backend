@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training Application Approval Required</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;">
+    
+    <!-- Email Container -->
+    <table role="presentation" style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-collapse: collapse;">
+        
+        <!-- Header -->
+        <tr>
+            <td style="padding: 0;">
+                <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); padding: 40px 30px; text-align: center;">
+                    <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
+                        NGN Training Center
+                    </h1>
+                    <p style="margin: 8px 0 0 0; color: #dbeafe; font-size: 16px; font-weight: 400;">
+                        Manager Approval Required
+                    </p>
+                </div>
+            </td>
+        </tr>
+        
+        <!-- Main Content -->
+        <tr>
+            <td style="padding: 50px 30px;">
+                
+                <!-- Notification Icon -->
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div style="width: 80px; height: 80px; background-color: #dbeafe; border-radius: 50%; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="m22 2-5 5m0 0-5 5m5-5v6a1 1 0 0 1-1 1h-6"></path>
+                        </svg>
+                    </div>
+                </div>
+                
+                <!-- Greeting -->
+                <h2 style="margin: 0 0 20px 0; color: #1f2937; font-size: 24px; font-weight: 600; text-align: center; line-height: 1.3;">
+                    Training Application Approval Required
+                </h2>
+                
+                <p style="margin: 0 0 25px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+                    Dear {{MANAGER_NAME}},
+                </p>
+                
+                <p style="margin: 0 0 25px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+                    You have received a new training application that requires your approval:
+                </p>
+                
+                <!-- Application Details Card -->
+                <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 25px; margin: 30px 0;">
+                    <h3 style="margin: 0 0 20px 0; color: #374151; font-size: 18px; font-weight: 600;">
+                        Application Details
+                    </h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 12px 0; font-weight: 600; width: 140px; color: #6b7280; font-size: 14px;">
+                                Employee:
+                            </td>
+                            <td style="padding: 12px 0; color: #1f2937; font-size: 16px; font-weight: 500;">
+                                {{APPLICANT_NAME}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px 0; font-weight: 600; color: #6b7280; font-size: 14px;">
+                                Course:
+                            </td>
+                            <td style="padding: 12px 0; color: #1f2937; font-size: 16px; font-weight: 500;">
+                                {{COURSE_TITLE}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px 0; font-weight: 600; color: #6b7280; font-size: 14px;">
+                                Submitted:
+                            </td>
+                            <td style="padding: 12px 0; color: #1f2937; font-size: 16px;">
+                                {{SUBMITTED_DATE}}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <!-- Action Button -->
+                <div style="text-align: center; margin: 40px 0;">
+                    <a href="{{APPROVAL_URL}}" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: 600; display: inline-block; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2); transition: all 0.2s;">
+                        Review & Approve Application
+                    </a>
+                </div>
+                
+                <!-- Important Notice -->
+                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 0 8px 8px 0; padding: 20px; margin: 30px 0;">
+                    <h4 style="margin: 0 0 8px 0; color: #92400e; font-size: 16px; font-weight: 600;">
+                        Important Notice
+                    </h4>
+                    <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.6;">
+                        This approval link will expire in <strong>7 days</strong> and can only be used once. 
+                        Please review the application promptly to avoid delays.
+                    </p>
+                </div>
+                
+                <!-- Support Information -->
+                <p style="margin: 25px 0 0 0; color: #6b7280; font-size: 14px; line-height: 1.5;">
+                    If you have any questions about this training request, please contact the HR department at 
+                    <a href="mailto:hr@ngntrainingcenter.com" style="color: #3b82f6; text-decoration: none; font-weight: 500;">
+                        hr@ngntrainingcenter.com
+                    </a>
+                </p>
+            </td>
+        </tr>
+        
+        <!-- Footer -->
+        <tr>
+            <td style="padding: 0;">
+                <div style="background-color: #1f2937; padding: 40px 30px; text-align: center;">
+                    
+                    <!-- Company Logo/Name -->
+                    <h3 style="margin: 0 0 20px 0; color: #ffffff; font-size: 20px; font-weight: 600;">
+                        NGN Training Center
+                    </h3>
+                    
+                    <!-- Disclaimer -->
+                    <div style="border-top: 1px solid #374151; padding-top: 25px;">
+                        <p style="margin: 0; color: #9ca3af; font-size: 12px; line-height: 1.5;">
+                            This is an automated message from the Training Portal System.<br>
+                            Please do not reply to this email. For support, contact hr@ngntrainingcenter.com
+                        </p>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
