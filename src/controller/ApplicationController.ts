@@ -77,7 +77,7 @@ const applicationController = {
       await client.query("ROLLBACK");
       return next(err);
     } finally {
-      client.release(true);
+      client.release();
     }
   },
   createApplication: async (
@@ -117,7 +117,7 @@ const applicationController = {
       res.status(BAD_REQUEST);
       return next(err);
     } finally {
-      client.release(true);
+      client.release();
     }
   },
   updateApplication: async (
@@ -183,6 +183,8 @@ const applicationController = {
     } catch (err: any) {
       await client.query("ROLLBACK");
       return next(err);
+    } finally {
+      client.release();
     }
   },
   deleteApplication: async (
@@ -220,6 +222,8 @@ const applicationController = {
       await client.query("ROLLBACK");
       res.status(NOT_FOUND);
       return next(NOT_FOUND_ERROR);
+    } finally {
+      client.release();
     }
   },
   getDetailedApplications: async (
@@ -253,7 +257,7 @@ const applicationController = {
       await client.query("ROLLBACK");
       return next(err);
     } finally {
-      client.release(true);
+      client.release();
     }
   },
   bulkUpdateApplications: async (
@@ -314,7 +318,7 @@ const applicationController = {
       res.status(BAD_REQUEST);
       return next(err);
     } finally {
-      client.release(true);
+      client.release();
     }
   },
 };

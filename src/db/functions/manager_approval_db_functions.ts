@@ -232,7 +232,8 @@ export const getApplicationForManagerReview = async (
         c.format AS course_format,
         c.level AS course_level,
         c.thumbnail_url AS course_thumbnail_url,
-        c.price AS course_price
+        c.price AS course_price,
+        c.is_tamkeen_support AS course_is_tamkeen_support
       FROM applications a
       JOIN users u ON a.applicant_id = u.id
       JOIN courses c ON a.course_id = c.id

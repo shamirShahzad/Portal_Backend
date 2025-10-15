@@ -42,7 +42,8 @@ export const createCourse = async (newCourse: Course, client: any) => {
         prerequisites,
         thumbnail_url,
         price,
-        is_active
+        is_active,
+        is_tamkeen_support
         ) VALUES (
         $1,
         $2,
@@ -54,7 +55,8 @@ export const createCourse = async (newCourse: Course, client: any) => {
         $8,
         $9,
         $10,
-        $11
+        $11,
+        $12
         ) RETURNING *
 `;
   try {
@@ -70,6 +72,7 @@ export const createCourse = async (newCourse: Course, client: any) => {
       newCourse.thumbnail_url,
       newCourse.price,
       newCourse.is_active,
+      newCourse.is_tamkeen_support,
     ];
     const result = await client.query(qStr, values);
     if (result.rows.length === 0) {
@@ -137,6 +140,7 @@ export const updateCourse = async (
     thumbnail_url,
     price,
     is_active,
+    is_tamkeen_support,
   } = course;
   const qStr = `
   UPDATE courses SET
@@ -151,8 +155,9 @@ export const updateCourse = async (
   thumbnail_url = $9,
   price = $10,
   is_active = $11,
-  updated_at = $12
-  WHERE id = $13
+  is_tamkeen_support = $12,
+  updated_at = $13
+  WHERE id = $14
   RETURNING *
   `;
   const values = [
@@ -167,6 +172,7 @@ export const updateCourse = async (
     thumbnail_url,
     price,
     is_active,
+    is_tamkeen_support,
     new Date().toISOString(),
     id,
   ];

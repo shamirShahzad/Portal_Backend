@@ -4,6 +4,7 @@ import documentController from "../controller/DocumentController";
 import { upload } from "../util/multerConfig";
 
 documentRouter.get("/", documentController.getAllDocuments);
+documentRouter.get("/:id/download", documentController.downloadDocument);
 documentRouter.post(
   "/",
   upload.array("documents"),

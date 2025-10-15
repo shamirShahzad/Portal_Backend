@@ -58,7 +58,7 @@ const courseController = {
       res.status(500);
       return next(err);
     } finally {
-      client.release(true);
+      client.release();
     }
   },
   createCourse: async (
@@ -76,6 +76,9 @@ const courseController = {
       }
       if (typeof newCourse.is_active === "string") {
         newCourse.is_active = Boolean(newCourse.is_active);
+      }
+      if (typeof newCourse.is_tamkeen_support === "string") {
+        newCourse.is_tamkeen_support = Boolean(newCourse.is_tamkeen_support);
       }
       if (req.file) {
         const newFileName = `${Date.now()}${path.extname(
@@ -108,6 +111,8 @@ const courseController = {
     } catch (err: any) {
       await client.query("ROLLBACK");
       return next(err);
+    } finally {
+      client.release();
     }
   },
   updateCourse: async (
@@ -153,6 +158,9 @@ const courseController = {
       if (typeof filledUpdateTup.is_active === "string") {
         filledUpdateTup.is_active = Boolean(filledUpdateTup.is_active);
       }
+      if (typeof filledUpdateTup.is_tamkeen_support === "string") {
+        filledUpdateTup.is_tamkeen_support = Boolean(filledUpdateTup.is_tamkeen_support);
+      }
       course = CourseUpdateSchema.parse(filledUpdateTup);
       const updateCourseTup = await updateCourse(client, course);
       if (!updateCourseTup.success) {
@@ -192,7 +200,7 @@ const courseController = {
       await client.query("ROLLBACK");
       return next(err);
     } finally {
-      client.release(true);
+      client.release();
     }
   },
   deleteCourse: async (
@@ -243,7 +251,7 @@ const courseController = {
       await client.query("ROLLBACK");
       return next(error);
     } finally {
-      client.release(true);
+      client.release();
     }
   },
 };

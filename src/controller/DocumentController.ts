@@ -66,7 +66,7 @@ const documentController = {
       await client.query("ROLLBACK");
       return next(err);
     } finally {
-      client.release(true);
+      client.release();
     }
   },
   createNewDocument: async (
@@ -97,15 +97,50 @@ const documentController = {
       }
       if (files && files.length > 0) {
         for (const file of files) {
-          const newFileName = `${file.originalname}-${Date.now()}`;
+          // Extract file extension from original filename
+          const fileExtension = path.extname(file.originalname);
+          const fileNameWithoutExt = path.basename(file.originalname, fileExtension);
+          
+          // Create unique filename while preserving extension
+          const newFileName = `${fileNameWithoutExt}-${Date.now()}${fileExtension}`;
           const filePath = `uploads/${newFileName}`;
+
+          // Validate file type and ensure mime type is correct
+          let mimeType = file.mimetype;
+          if (!mimeType || mimeType === 'application/octet-stream') {
+            // Try to determine mime type from file extension
+            const ext = fileExtension.toLowerCase();
+            switch (ext) {
+              case '.pdf':
+                mimeType = 'application/pdf';
+                break;
+              case '.doc':
+                mimeType = 'application/msword';
+                break;
+              case '.docx':
+                mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+                break;
+              case '.jpg':
+              case '.jpeg':
+                mimeType = 'image/jpeg';
+                break;
+              case '.png':
+                mimeType = 'image/png';
+                break;
+              case '.txt':
+                mimeType = 'text/plain';
+                break;
+              default:
+                mimeType = 'application/octet-stream';
+            }
+          }
 
           const singleDocument = {
             application_id,
             file_name: newFileName,
             file_path: filePath,
             file_size: BigInt(file.size),
-            file_type: file.mimetype,
+            file_type: mimeType,
             is_required: Boolean(Number(is_required)),
             uploaded_by,
           };
@@ -144,6 +179,7 @@ const documentController = {
           const document = documents[i];
           const filePath = path.join(uploadsDir, document.file_name);
 
+          // Write file to disk
           fs.writeFileSync(filePath, file.buffer);
         }
       }
@@ -156,7 +192,7 @@ const documentController = {
       await client.query("ROLLBACK");
       return next(error);
     } finally {
-      client.release(true);
+      client.release();
     }
   },
   updateDocument: async (
@@ -177,10 +213,15 @@ const documentController = {
       const existingDocument = existingDocumentTup.data;
       const updateTup = req.body;
       if (updateTup.file_name) {
-        const newFilName = `${updateTup.file_name}-${Date.now()}`;
-        updateTup.file_name = newFilName;
-        const path = `uploads/${updateTup.file_name}`;
-        updateTup.file_path = path;
+        // Extract file extension from new filename
+        const fileExtension = path.extname(updateTup.file_name);
+        const fileNameWithoutExt = path.basename(updateTup.file_name, fileExtension);
+        
+        // Create unique filename while preserving extension
+        const newFileName = `${fileNameWithoutExt}-${Date.now()}${fileExtension}`;
+        updateTup.file_name = newFileName;
+        const filePath = `uploads/${updateTup.file_name}`;
+        updateTup.file_path = filePath;
       }
       const updatedDocumentData = fillEmptyObject(updateTup, existingDocument);
       const parsedUpdateData = DocumentUpdateSchema.parse(updatedDocumentData);
@@ -211,6 +252,8 @@ const documentController = {
     } catch (err: any) {
       await client.query("ROLLBACK");
       return next(err);
+    } finally {
+      client.release();
     }
   },
   deleteDocument: async (
@@ -252,6 +295,80 @@ const documentController = {
     } catch (err: any) {
       await client.query("ROLLBACK");
       return next(err);
+    } finally {
+      client.release();
+    }
+  },
+  downloadDocument: async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
+    const { id } = req.params;
+    const client = await pool.connect();
+    
+    try {
+      await client.query("BEGIN");
+      
+      // Get document by ID
+      const documentTup = await getDocumentById(client, id.toString());
+      if (!documentTup.success) {
+        await client.query("ROLLBACK");
+        res.status(NOT_FOUND);
+        return next(NOT_FOUND_ERROR("Document not found"));
+      }
+      
+      const document = documentTup.data;
+      
+      // Check if file exists on disk
+      const uploadDir = path.join(__dirname, "..", "uploads");
+      const filePath = path.join(uploadDir, document.file_name);
+      
+      if (!fs.existsSync(filePath)) {
+        await client.query("ROLLBACK");
+        res.status(NOT_FOUND);
+        return next(NOT_FOUND_ERROR("Document file not found on server"));
+      }
+      
+      await client.query("COMMIT");
+      
+      // Extract original filename for download (remove timestamp pattern: -timestamp)
+      // Pattern: "filename-1234567890.ext" -> "filename.ext"
+      let originalFileName = document.file_name;
+      const timestampPattern = /-\d{13,}(\.[^.]+)?$/; // Matches -timestamp at end, preserving extension
+      
+      if (timestampPattern.test(document.file_name)) {
+        // Extract the part before the timestamp and preserve extension
+        const match = document.file_name.match(/^(.+?)-\d{13,}(\.[^.]+)?$/);
+        if (match) {
+          const nameBeforeTimestamp = match[1];
+          const extension = match[2] || '';
+          originalFileName = nameBeforeTimestamp + extension;
+        }
+      }
+      
+      // Set appropriate headers for file download
+      res.setHeader('Content-Type', document.file_type || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${originalFileName}"`);
+      res.setHeader('Content-Length', document.file_size.toString());
+      
+      // Stream the file to the response
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+      
+      fileStream.on('error', (err) => {
+        console.error('Error streaming file:', err);
+        if (!res.headersSent) {
+          res.status(500);
+          return next(new Error("Error downloading file"));
+        }
+      });
+      
+    } catch (err: any) {
+      await client.query("ROLLBACK");
+      return next(err);
+    } finally {
+      client.release();
     }
   },
 };

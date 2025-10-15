@@ -217,7 +217,7 @@ const userController = {
       res.status(STATUS_CODES.BAD_REQUEST);
       return next(validationError);
     } finally {
-      client.release(true);
+      client.release();
     }
   },
 
@@ -323,7 +323,7 @@ const userController = {
     } catch (error) {
       return next(error);
     } finally {
-      client.release(true);
+      client.release();
     }
   },
   authCheck: async (
@@ -394,7 +394,7 @@ const userController = {
       res.status(SERVER_ERROR);
       return next(err);
     } finally {
-      client.release(true);
+      client.release();
     }
   },
 
@@ -448,7 +448,7 @@ const userController = {
       res.status(BAD_REQUEST);
       return next(err);
     } finally {
-      client.release(true);
+      client.release();
     }
   },
 };

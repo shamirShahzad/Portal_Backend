@@ -4,11 +4,14 @@ import {
   NOT_FOUND_ERROR,
   CONFLICT_ERROR,
 } from "../../util/Errors";
+import { STATUS_CODES } from "../../util/enums";
 import { FiltersType } from "../../controller/ApplicationController";
 import { Application, ApplicationUpdate } from "../../models/applications";
 import { getUserById } from "./user_db_functions";
 import { getCourseById } from "./course_db_functions";
 import { getDocumentsByApplicationId } from "./document_db_functions";
+
+const { SUCCESS, NOT_FOUND, SERVER_ERROR } = STATUS_CODES;
 import { application_status } from "../../util/enums";
 
 export const getAllApplications = async (
@@ -269,6 +272,184 @@ export const deleteApplication = async (client: PoolClient, id: string) => {
   }
 };
 
+// Enhanced function for export with comprehensive filtering
+export const getDetailedApplicationsForExport = async (
+  client: PoolClient,
+  filters: any
+) => {
+  const conditions = [];
+  const values = [];
+  let i = 1;
+  
+  // Basic filters
+  if (filters.id) {
+    conditions.push(`a.id = $${i++}`);
+    values.push(filters.id);
+  }
+  if (filters.applicant_id) {
+    conditions.push(`a.applicant_id = $${i++}`);
+    values.push(filters.applicant_id);
+  }
+  if (filters.course_id) {
+    conditions.push(`a.course_id = $${i++}`);
+    values.push(filters.course_id);
+  }
+  
+  // Status filtering (support for multiple statuses)
+  if (filters.status) {
+    if (Array.isArray(filters.status)) {
+      const placeholders = filters.status.map(() => `$${i++}`).join(', ');
+      conditions.push(`a.status IN (${placeholders})`);
+      values.push(...filters.status);
+    } else {
+      conditions.push(`a.status = $${i++}`);
+      values.push(filters.status);
+    }
+  }
+  
+  // Priority filtering (support for multiple priorities)
+  if (filters.priority) {
+    if (Array.isArray(filters.priority)) {
+      const placeholders = filters.priority.map(() => `$${i++}`).join(', ');
+      conditions.push(`a.priority IN (${placeholders})`);
+      values.push(...filters.priority);
+    } else {
+      conditions.push(`a.priority = $${i++}`);
+      values.push(filters.priority);
+    }
+  }
+  
+  // Department filtering
+  if (filters.department && filters.department.length > 0) {
+    const placeholders = filters.department.map(() => `$${i++}`).join(', ');
+    conditions.push(`up.department IN (${placeholders})`);
+    values.push(...filters.department);
+  }
+  
+  // Sub-organization filtering
+  if (filters.subOrganization && filters.subOrganization.length > 0) {
+    const placeholders = filters.subOrganization.map(() => `$${i++}`).join(', ');
+    conditions.push(`up.sub_organization IN (${placeholders})`);
+    values.push(...filters.subOrganization);
+  }
+  
+  // Course category filtering
+  if (filters.courseCategories && filters.courseCategories.length > 0) {
+    const placeholders = filters.courseCategories.map(() => `$${i++}`).join(', ');
+    conditions.push(`c.category IN (${placeholders})`);
+    values.push(...filters.courseCategories);
+  }
+  
+  // Specific course ID filtering
+  if (filters.courseIds && filters.courseIds.length > 0) {
+    const placeholders = filters.courseIds.map(() => `$${i++}`).join(', ');
+    conditions.push(`c.id IN (${placeholders})`);
+    values.push(...filters.courseIds);
+  }
+  
+  // Reviewer filtering
+  if (filters.reviewedBy) {
+    if (Array.isArray(filters.reviewedBy)) {
+      const placeholders = filters.reviewedBy.map(() => `$${i++}`).join(', ');
+      conditions.push(`a.reviewed_by IN (${placeholders})`);
+      values.push(...filters.reviewedBy);
+    } else {
+      conditions.push(`a.reviewed_by = $${i++}`);
+      values.push(filters.reviewedBy);
+    }
+  }
+  
+  // Dynamic date filtering based on selected field
+  const dateField = filters.dateField || 'created_at';
+  if (filters.startDate && filters.endDate) {
+    conditions.push(`a.${dateField} BETWEEN $${i++} AND $${i++}`);
+    values.push(filters.startDate, filters.endDate);
+  } else {
+    if (filters.startDate) {
+      conditions.push(`a.${dateField} >= $${i++}`);
+      values.push(filters.startDate);
+    }
+    if (filters.endDate) {
+      conditions.push(`a.${dateField} <= $${i++}`);
+      values.push(filters.endDate);
+    }
+  }
+  
+  // Text search across multiple fields
+  if (filters.textSearch) {
+    const searchTerm = `%${filters.textSearch.toLowerCase()}%`;
+    conditions.push(`(
+      LOWER(up.full_name) LIKE $${i++} OR
+      LOWER(up.employee_id) LIKE $${i++} OR
+      LOWER(c.title) LIKE $${i++} OR
+      LOWER(c.category) LIKE $${i++} OR
+      LOWER(a.notes) LIKE $${i++}
+    )`);
+    values.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
+  }
+  
+  // Exclude inactive courses if specified
+  if (filters.excludeInactive) {
+    conditions.push(`c.is_active = true`);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const qStr = `
+  SELECT 
+    a.*,
+    up.full_name AS applicant_name,
+    up.employee_id,
+    up.department,
+    up.sub_organization,
+    up.job_title,
+    up.experience_years,
+    up.manager_name,
+    up.manager_email,
+    u.email as applicant_email,
+    c.title AS course_title,
+    c.category AS course_category,
+    c.duration AS course_duration,
+    c.format AS course_format,
+    c.level AS course_level,
+    c.thumbnail_url AS course_thumbnail_url,
+    c.price AS course_price,
+    c.is_tamkeen_support AS course_is_tamkeen_support,
+    rev_up.full_name AS reviewer_name
+    FROM applications a
+    JOIN users u ON a.applicant_id = u.id
+    JOIN courses c ON a.course_id = c.id
+    JOIN user_profiles up ON a.applicant_id = up.id
+    LEFT JOIN user_profiles rev_up ON a.reviewed_by = rev_up.id
+    ${whereClause}
+    ORDER BY a.${dateField} DESC
+  `;
+  
+  try {
+    const applicationsTup = await client.query(qStr, values);
+    if (applicationsTup.rows.length <= 0 || applicationsTup.rowCount == 0) {
+      return {
+        success: false,
+        statusCode: NOT_FOUND,
+        error: NOT_FOUND_ERROR("Applications not found"),
+        errorMessage: "Applications not found"
+      };
+    }
+    return {
+      success: true,
+      statusCode: SUCCESS,
+      data: applicationsTup.rows
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error,
+      errorMessage: "Something went wrong while fetching Applications",
+      statusCode: SERVER_ERROR
+    };
+  }
+};
+
 export const getDetailedApplications = async (
   client: PoolClient,
   filters: FiltersType
@@ -336,7 +517,8 @@ export const getDetailedApplications = async (
     c.format AS course_format,
     c.level AS course_level,
     c.thumbnail_url AS course_thumbnail_url,
-    c.price AS course_price
+    c.price AS course_price,
+    c.is_tamkeen_support AS course_is_tamkeen_support
     FROM applications a
     JOIN users u ON a.applicant_id = u.id
     JOIN courses c ON a.course_id = c.id

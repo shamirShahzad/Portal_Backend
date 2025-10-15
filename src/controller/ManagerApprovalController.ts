@@ -270,7 +270,7 @@ const managerApprovalController = {
       res.status(BAD_REQUEST);
       return next(err);
     } finally {
-      client.release(true);
+      client.release();
     }
   },
 
@@ -312,7 +312,7 @@ const managerApprovalController = {
       res.status(BAD_REQUEST);
       return next(err);
     } finally {
-      client.release(true);
+      client.release();
     }
   },
 
@@ -462,7 +462,7 @@ const managerApprovalController = {
       res.status(BAD_REQUEST);
       return next(err);
     } finally {
-      client.release(true);
+      client.release();
     }
   },
 };

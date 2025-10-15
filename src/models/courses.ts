@@ -13,6 +13,7 @@ export const CourseSchema = z.object({
   thumbnail_url: z.string(),
   price: z.number(),
   is_active: z.boolean(),
+  is_tamkeen_support: z.boolean(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });
@@ -30,6 +31,7 @@ export const CourseUpdateSchema = z.object({
   thumbnail_url: z.string().optional(),
   price: z.number().optional(),
   is_active: z.boolean().optional(),
+  is_tamkeen_support: z.boolean().optional(),
   updated_at: z.date().optional().optional(),
 })
 
